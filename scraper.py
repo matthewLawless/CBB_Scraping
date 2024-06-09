@@ -14,10 +14,46 @@ from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common import StaleElementReferenceException
 from selenium.common import ElementClickInterceptedException
+from header import Bookmakers
 
 
 
 m = header.Moneyline("dog", "cat", "d")
+
+def findDate(webpage):
+    date = webpage.find_element(By.XPATH, "//*[@id='odds-component']/header")
+    data_content = date.get_attribute("data-content")
+    # print(data_content)
+    dateIndex = data_content.find("date")
+    # print(dateIndex)
+    # print("[[[[[[[[]]]]]]]]")
+    # print(data_content[dateIndex+5:dateIndex + 15])
+    return data_content[dateIndex+5:dateIndex + 15]
+
+
+bookmakerMap = {
+    "BET365": 1,
+    "FANDUEL": 2,
+    "BETMGM": 3,
+    "CAESARSSPORTSBOOK": 4,
+    "DRAFTKINGS": 5,
+    "RIVERSCASINO": 6,
+    "UNIBET": 7
+}
+
+def createMoneylineFromTwoRows(homeRow, awayRow, webpage, date):
+    #need to find out what day it is
+    homeTeamName = (homeRow.find_element(By.CLASS_NAME, "team-name")).text
+    awayTeamName = (awayRow.find_element(By.CLASS_NAME, "team-name")).text
+
+    m = header.Moneyline(homeTeamName, awayTeamName, date)
+    m.home_Odds = ((homeRow.find_elements(By.CLASS_NAME, "game-odds"))[Bookmakers["DRAFTKINGS"].value]).text
+    m.away_Odds = ((awayRow.find_elements(By.CLASS_NAME, "game-odds"))[Bookmakers["DRAFTKINGS"].value]).text
+    return m
+
+
+
+
 
 
 fake_URL = "https://realpython.github.io/fake-jobs/"
@@ -70,7 +106,7 @@ for d in days:
 print("------------------done with loop----------------------")
 foundDateWithLines = False
 while (True):
-    time.sleep(0.5)
+    time.sleep(0.1)
     try:
         sPage.find_element(By.XPATH, "//*[@id='odds-table-spread--0']/tr[2]")
         print("----------found odds table------------")
@@ -116,10 +152,42 @@ while (attempts < 50):
 
 
 time.sleep(1)
-currentRow = sPage.find_element(By.XPATH, "//*[@id='odds-table-moneyline--0']/tr[2]")
-print(currentRow.text)
-print((currentRow.find_element(By.XPATH, "//*[@id='odds-table-moneyline--0']/tr[2]/td[1]")).text)
-print((currentRow.find_element(By.XPATH, "//*[@id='odds-table-moneyline--0']/tr[3]/td[1]")).text)
+date = findDate(sPage)
+
+moneyline = sPage.find_element(By.XPATH, "//*[@id='odds-component']/div")
+
+currentRowIndex = 0
+topRows = moneyline.find_elements(By.CLASS_NAME, "divided")
+bottomRows = moneyline.find_elements(By.CLASS_NAME, "footer")
+
+print(len(topRows), " | " ,len(bottomRows))
+
+for element in topRows:
+    print((element.find_element(By.CLASS_NAME, "game-team")).text)
+
+
+if (len(topRows) != len(bottomRows)):
+    raise Exception("Differing number of top and bottom rows")
+
+while (currentRowIndex < len(topRows)):
+    # topRowOfPair = sPage.find_element(By.XPATH, "//*[@id='odds-table-moneyline--0']/tr[2]")
+    # bottomRowOfPair = sPage.find_element(By.XPATH, "//*[@id='odds-table-moneyline--0']/tr[3]")
+    topRowOfPair = topRows[currentRowIndex]
+    bottomRowOfPair = bottomRows[currentRowIndex]
+    print((topRowOfPair.find_element(By.CLASS_NAME, "team-name")).text)
+    print((bottomRowOfPair.find_element(By.CLASS_NAME, "team-name")).text)
+    m = createMoneylineFromTwoRows(topRowOfPair, bottomRowOfPair, sPage, date)
+    print(m.toString())
+    currentRowIndex+=1
+
+
+
+
+sPage.close()
+# print(currentRow.text)
+# print((currentRow.find_element(By.XPATH, "//*[@id='odds-table-moneyline--0']/tr[2]/td[1]")).text)
+# print((currentRow.find_element(By.XPATH, "//*[@id='odds-table-moneyline--0']/tr[3]/td[1]")).text)
+
 
 
 
@@ -130,11 +198,11 @@ print((currentRow.find_element(By.XPATH, "//*[@id='odds-table-moneyline--0']/tr[
 
 
 #print(fake_Page.text)
-print("====================")
-session = HTMLSession()
+# print("====================")
+# session = HTMLSession()
 
-r = session.get(URL)
-r.html.render(sleep=1)
+# r = session.get(URL)
+# r.html.render(sleep=1)
 
 
 
@@ -145,4 +213,6 @@ r.html.render(sleep=1)
 #        self.app = QGuiApplication(sys.argv)
 #        QWebPage.__init__(self)
 #        self.loadFinished.connect(self.on_page_load)
+
+
 
