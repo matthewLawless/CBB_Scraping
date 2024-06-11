@@ -18,7 +18,7 @@ from header import Bookmakers
 
 
 
-m = header.Moneyline("dog", "cat", "d")
+
 
 def findDate(webpage):
     date = webpage.find_element(By.XPATH, "//*[@id='odds-component']/header")
@@ -41,22 +41,44 @@ bookmakerMap = {
     "UNIBET": 7
 }
 
-def createMoneylineFromTwoRows(homeRow, awayRow, webpage, date):
+def createMoneylineFromTwoRows(homeRow, awayRow, webpage, date, bookmakerNumber):
     #need to find out what day it is
     homeTeamName = (homeRow.find_element(By.CLASS_NAME, "team-name")).text
     awayTeamName = (awayRow.find_element(By.CLASS_NAME, "team-name")).text
 
-    m = header.Moneyline(homeTeamName, awayTeamName, date)
-    m.home_Odds = ((homeRow.find_elements(By.CLASS_NAME, "game-odds"))[Bookmakers["DRAFTKINGS"].value]).text
-    m.away_Odds = ((awayRow.find_elements(By.CLASS_NAME, "game-odds"))[Bookmakers["DRAFTKINGS"].value]).text
+    m = header.Moneyline(homeTeamName, awayTeamName, date, Bookmakers(bookmakerNumber).name)
+    m.home_Odds = ((homeRow.find_elements(By.CLASS_NAME, "game-odds"))[bookmakerNumber]).text
+    m.away_Odds = ((awayRow.find_elements(By.CLASS_NAME, "game-odds"))[bookmakerNumber]).text
     return m
 
+#Parses moneyline data from single date. webpage is the page corresponding to the date with moneyline already selected
+#this method returns a list of all of the moneyline objects, which will then (in some to-be-created logic)
+#be passed to a method that inserts these moneyline objects into the database
+def parseMoneylineFromPage(webpage, bookmakerNumber):
+    currentRowIndex=0
+    result = []
+    topRows = webpage.find_elements(By.CLASS_NAME, "divided")
+    bottomRows = webpage.find_elements(By.CLASS_NAME, "footer")
+
+    if (len(topRows) != len(bottomRows)):
+        raise Exception("Differing number of top and bottom rows")
+    
+    while (currentRowIndex < len(topRows)):
+    # topRowOfPair = sPage.find_element(By.XPATH, "//*[@id='odds-table-moneyline--0']/tr[2]")
+    # bottomRowOfPair = sPage.find_element(By.XPATH, "//*[@id='odds-table-moneyline--0']/tr[3]")
+        topRowOfPair = topRows[currentRowIndex]
+        bottomRowOfPair = bottomRows[currentRowIndex]
+        # print((topRowOfPair.find_element(By.CLASS_NAME, "team-name")).text)
+        # print((bottomRowOfPair.find_element(By.CLASS_NAME, "team-name")).text)
+        m = createMoneylineFromTwoRows(topRowOfPair, bottomRowOfPair, sPage, date, bookmakerNumber)
+        result.append(m)
+        currentRowIndex+=1
+    
+    return result
+
+# def insertMoneylineObjectsIntoDatabase(moneylineList):
 
 
-
-
-
-fake_URL = "https://realpython.github.io/fake-jobs/"
 URL = "https://www.vegasinsider.com/college-basketball/odds/las-vegas/"
 
 months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
@@ -77,8 +99,6 @@ monthHas31Days = {
     "Dec": True
 }
 
-
-fake_Page = requests.get(fake_URL)
 page = requests.get(URL)
 
 sPage = webdriver.Chrome()
@@ -156,29 +176,31 @@ date = findDate(sPage)
 
 moneyline = sPage.find_element(By.XPATH, "//*[@id='odds-component']/div")
 
-currentRowIndex = 0
-topRows = moneyline.find_elements(By.CLASS_NAME, "divided")
-bottomRows = moneyline.find_elements(By.CLASS_NAME, "footer")
+moneylineList = parseMoneylineFromPage(moneyline, Bookmakers["FANDUEL"].value)
 
-print(len(topRows), " | " ,len(bottomRows))
+# currentRowIndex = 0
+# topRows = moneyline.find_elements(By.CLASS_NAME, "divided")
+# bottomRows = moneyline.find_elements(By.CLASS_NAME, "footer")
 
-for element in topRows:
-    print((element.find_element(By.CLASS_NAME, "game-team")).text)
+# print(len(topRows), " | " ,len(bottomRows))
+
+# for element in topRows:
+#     print((element.find_element(By.CLASS_NAME, "game-team")).text)
 
 
-if (len(topRows) != len(bottomRows)):
-    raise Exception("Differing number of top and bottom rows")
+# if (len(topRows) != len(bottomRows)):
+#     raise Exception("Differing number of top and bottom rows")
 
-while (currentRowIndex < len(topRows)):
-    # topRowOfPair = sPage.find_element(By.XPATH, "//*[@id='odds-table-moneyline--0']/tr[2]")
-    # bottomRowOfPair = sPage.find_element(By.XPATH, "//*[@id='odds-table-moneyline--0']/tr[3]")
-    topRowOfPair = topRows[currentRowIndex]
-    bottomRowOfPair = bottomRows[currentRowIndex]
-    print((topRowOfPair.find_element(By.CLASS_NAME, "team-name")).text)
-    print((bottomRowOfPair.find_element(By.CLASS_NAME, "team-name")).text)
-    m = createMoneylineFromTwoRows(topRowOfPair, bottomRowOfPair, sPage, date)
-    print(m.toString())
-    currentRowIndex+=1
+# while (currentRowIndex < len(topRows)):
+#     # topRowOfPair = sPage.find_element(By.XPATH, "//*[@id='odds-table-moneyline--0']/tr[2]")
+#     # bottomRowOfPair = sPage.find_element(By.XPATH, "//*[@id='odds-table-moneyline--0']/tr[3]")
+#     topRowOfPair = topRows[currentRowIndex]
+#     bottomRowOfPair = bottomRows[currentRowIndex]
+#     print((topRowOfPair.find_element(By.CLASS_NAME, "team-name")).text)
+#     print((bottomRowOfPair.find_element(By.CLASS_NAME, "team-name")).text)
+#     m = createMoneylineFromTwoRows(topRowOfPair, bottomRowOfPair, sPage, date)
+#     print(m.toString())
+#     currentRowIndex+=1
 
 
 
@@ -190,6 +212,12 @@ sPage.close()
 
 
 
+for m in moneylineList:
+    if (m == None):
+        print('NONE')
+    else:
+        print(m.toString())
+    print('\n')
 
     
 

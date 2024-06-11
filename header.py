@@ -17,9 +17,10 @@ class Moneyline:
     home_Odds = None
     away_Odds = None
     date = None
+    bookmaker = ""
 
 
-    def __init__(self, home, away, date):
+    def __init__(self, home, away, date, bookmaker):
         self.home = home
         self.away = away
         self.date = date
