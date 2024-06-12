@@ -24,8 +24,9 @@ class Moneyline:
         self.home = home
         self.away = away
         self.date = date
+        self.bookmaker = bookmaker
 
     def toString(self):
-        return self.date + "\n" + "{:<25}".format(self.home) + " | " + "{:<6}".format(self.home_Odds) + "\n" + "{:<25}".format(self.away)+ " | " + "{:<6}".format(self.away_Odds)
+        return self.bookmaker + "  |  " + self.date + "\n" + "{:<25}".format(self.home) + " | " + "{:<6}".format(self.home_Odds) + "\n" + "{:<25}".format(self.away)+ " | " + "{:<6}".format(self.away_Odds)
     
     

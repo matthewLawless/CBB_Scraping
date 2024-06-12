@@ -15,8 +15,17 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.common import StaleElementReferenceException
 from selenium.common import ElementClickInterceptedException
 from header import Bookmakers
+import mysql.connector
+import datetime
+from datetime import datetime
+from sql_creds import Credentials
 
-
+cbb_betting_lines = mysql.connector.connect(
+    host =  (Credentials.host).value,
+    user =  (Credentials.user).value,
+    password = (Credentials.password).value,
+    database = (Credentials.database.value),
+    )
 
 
 
@@ -48,7 +57,14 @@ def createMoneylineFromTwoRows(homeRow, awayRow, webpage, date, bookmakerNumber)
 
     m = header.Moneyline(homeTeamName, awayTeamName, date, Bookmakers(bookmakerNumber).name)
     m.home_Odds = ((homeRow.find_elements(By.CLASS_NAME, "game-odds"))[bookmakerNumber]).text
+    # if (m.home_Odds == 'N/A'):
+    #     m.home_Odds = None
     m.away_Odds = ((awayRow.find_elements(By.CLASS_NAME, "game-odds"))[bookmakerNumber]).text
+    # if (m.away_Odds == 'N/A'):
+    #     m.away_Odds = None
+    
+    if (homeTeamName == '' and awayTeamName == ''):
+        return None
     return m
 
 #Parses moneyline data from single date. webpage is the page corresponding to the date with moneyline already selected
@@ -71,12 +87,30 @@ def parseMoneylineFromPage(webpage, bookmakerNumber):
         # print((topRowOfPair.find_element(By.CLASS_NAME, "team-name")).text)
         # print((bottomRowOfPair.find_element(By.CLASS_NAME, "team-name")).text)
         m = createMoneylineFromTwoRows(topRowOfPair, bottomRowOfPair, sPage, date, bookmakerNumber)
-        result.append(m)
+        if (m != None):
+            result.append(m)
         currentRowIndex+=1
     
     return result
 
-# def insertMoneylineObjectsIntoDatabase(moneylineList):
+def insertMoneylineObjectsIntoDatabase(moneylineList, databaseCursor):
+    numberOfRows = len(moneylineList)
+    insertStatement = "INSERT INTO moneyline(home, away, date, home_Odds, away_Odds, bookmaker)\nVALUES \n"
+    for m in moneylineList:
+        
+        if (m.home_Odds == 'N/A' and m.away_Odds == 'N/A'):
+            row = '("%s", "%s", "%s", %s, %s, "%s")' % (m.home, m.away, m.date, 'NULL', 'NULL', m.bookmaker)
+        else:
+            row = '("%s", "%s", "%s", %d, %d, "%s")' % (m.home, m.away, m.date, int((m.home_Odds)[1:]), int((m.away_Odds)[1:]), m.bookmaker)
+        insertStatement += row
+        insertStatement += ',\n'
+
+
+    insertStatement = insertStatement[:-2]
+    insertStatement += ";"
+    print(insertStatement)
+    databaseCursor.execute(insertStatement)
+
 
 
 URL = "https://www.vegasinsider.com/college-basketball/odds/las-vegas/"
@@ -177,6 +211,9 @@ date = findDate(sPage)
 moneyline = sPage.find_element(By.XPATH, "//*[@id='odds-component']/div")
 
 moneylineList = parseMoneylineFromPage(moneyline, Bookmakers["FANDUEL"].value)
+
+insertMoneylineObjectsIntoDatabase(moneylineList, cbb_betting_lines.cursor())
+cbb_betting_lines.commit()
 
 # currentRowIndex = 0
 # topRows = moneyline.find_elements(By.CLASS_NAME, "divided")

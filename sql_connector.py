@@ -25,8 +25,5 @@ date = datetime.now()
 #date = strftime(date)
 print(date)
 
-cursor.execute("""INSERT INTO moneyline (home, away, date, bookmaker)
-                                    VALUES('ILL', 'ISU', '2024-03-25', 'DRAFTKINGS')
-                                    ON DUPLICATE KEY UPDATE
-                                    home = 'AL'""")
+cursor.execute("""DELETE FROM moneyline WHERE id > -1""")
 cbb_betting_lines.commit()
