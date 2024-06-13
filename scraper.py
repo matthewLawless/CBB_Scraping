@@ -17,8 +17,9 @@ from selenium.common import ElementClickInterceptedException
 from header import Bookmakers
 import mysql.connector
 import datetime
-from datetime import datetime
+from datetime import date
 from sql_creds import Credentials
+import calendar
 
 cbb_betting_lines = mysql.connector.connect(
     host =  (Credentials.host).value,
@@ -101,7 +102,17 @@ def insertMoneylineObjectsIntoDatabase(moneylineList, databaseCursor):
         if (m.home_Odds == 'N/A' and m.away_Odds == 'N/A'):
             row = '("%s", "%s", "%s", %s, %s, "%s")' % (m.home, m.away, m.date, 'NULL', 'NULL', m.bookmaker)
         else:
-            row = '("%s", "%s", "%s", %d, %d, "%s")' % (m.home, m.away, m.date, int((m.home_Odds)[1:]), int((m.away_Odds)[1:]), m.bookmaker)
+            hOdds = m.home_Odds
+            aOdds = m.away_Odds
+            if (m.home_Odds[0] == '-'):
+                hOdds = '-' + m.home_Odds
+            
+            if (m.away_Odds[0] == '-'):
+                aOdds = '-' + m.away_Odds
+            
+                
+            #row = '("%s", "%s", "%s", %d, %d, "%s")' % (m.home, m.away, m.date, int((m.home_Odds)[1:]), int((m.away_Odds)[1:]), m.bookmaker)
+            row = '("%s", "%s", "%s", %d, %d, "%s")' % (m.home, m.away, m.date, int((hOdds)[1:]), int((aOdds)[1:]), m.bookmaker)
         insertStatement += row
         insertStatement += ',\n'
 
@@ -110,6 +121,36 @@ def insertMoneylineObjectsIntoDatabase(moneylineList, databaseCursor):
     insertStatement += ";"
     print(insertStatement)
     databaseCursor.execute(insertStatement)
+
+#If we are in the same month as the desired date, we use previous and next
+#otherwise, we 
+def pathToDay(date, webpage):
+    dropDownForCalendar = webpage.find_element(By.CLASS_NAME, "down")
+    dropDownForCalendar.click()
+
+    currentMonthAndYear = webpage.find_element(By.XPATH, "//*[@id='odds-component']/header/div/div/div/div/div[8]/div/div/span[2]")
+    monthAndYearText = currentMonthAndYear.text
+    print("Month Year: " + monthAndYearText)
+    monthAbbreviation = monthAndYearText[0:-5]
+    websiteYear = int(monthAndYearText[-4:])
+    print("monthAbbreviation ==>: " + monthAbbreviation)
+    print("year ==>: ", websiteYear)
+    print(date.year)
+    print(date.month)
+    websiteDayOfMonthComp = webpage.find_element(By.XPATH, "//*[@id='odds-component']/header/div/div/div/div/div[4]")
+    websiteDayOfMonth = int((websiteDayOfMonthComp.text)[-2:])
+    print(websiteDayOfMonth)
+    print(int(websiteDayOfMonth))
+    #while (True):
+        #datetime.date(websiteYear, list(calendar.monthAbbreviation).index(monthAbbreviation), websiteDayOfMonth) != date
+
+        
+
+        
+
+
+
+
 
 
 
@@ -138,6 +179,12 @@ page = requests.get(URL)
 sPage = webdriver.Chrome()
 sPage.maximize_window()
 sPage.get(URL)
+
+time.sleep(2)
+
+pathToDay(datetime.date(2022, 12, 25), sPage)
+
+sPage.close()
 
 dropDownForCalendar = sPage.find_element(By.CLASS_NAME, "down")
 dropDownForCalendar.click()
@@ -210,7 +257,7 @@ date = findDate(sPage)
 
 moneyline = sPage.find_element(By.XPATH, "//*[@id='odds-component']/div")
 
-moneylineList = parseMoneylineFromPage(moneyline, Bookmakers["FANDUEL"].value)
+moneylineList = parseMoneylineFromPage(moneyline, Bookmakers["DRAFTKINGS"].value)
 
 insertMoneylineObjectsIntoDatabase(moneylineList, cbb_betting_lines.cursor())
 cbb_betting_lines.commit()

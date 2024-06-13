@@ -10,6 +10,7 @@ class Bookmakers(Enum):
     RIVERSCASINO = 6
     UNIBET = 7
 
+
 class Moneyline:
     
     home = ""

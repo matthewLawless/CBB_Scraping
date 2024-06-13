@@ -20,10 +20,13 @@ ans = cursor.fetchall()
 for i in ans:
     print(i)
 
-#date = datetime.date(2024, 6, 9)
+date = datetime.date(2024, 6, 9)
 date = datetime.now()
 #date = strftime(date)
 print(date)
 
-cursor.execute("""DELETE FROM moneyline WHERE id > -1""")
+# cursor.execute("""DELETE FROM moneyline WHERE date = '2023-11-07' """)
+cursor.execute("SELECT COUNT(*) FROM moneyline")
+ans = cursor.fetchall()
+print(ans)
 cbb_betting_lines.commit()
