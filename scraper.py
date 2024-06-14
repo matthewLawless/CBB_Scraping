@@ -20,6 +20,7 @@ import datetime
 from datetime import date
 from sql_creds import Credentials
 import calendar
+from selenium.common import ElementNotInteractableException
 
 cbb_betting_lines = mysql.connector.connect(
     host =  (Credentials.host).value,
@@ -38,7 +39,13 @@ def findDate(webpage):
     # print(dateIndex)
     # print("[[[[[[[[]]]]]]]]")
     # print(data_content[dateIndex+5:dateIndex + 15])
-    return data_content[dateIndex+5:dateIndex + 15]
+    return (data_content[dateIndex+5:dateIndex + 15])
+
+def dateStringToDateObject(dateString):
+    print(int(dateString[0:4]))
+    print(int(dateString[5:7]))
+    print(int(dateString[8:10]))
+    return datetime.date(int(dateString[0:4]), int(dateString[5:7]), int(dateString[8:10]))
 
 
 bookmakerMap = {
@@ -124,25 +131,70 @@ def insertMoneylineObjectsIntoDatabase(moneylineList, databaseCursor):
 
 #If we are in the same month as the desired date, we use previous and next
 #otherwise, we 
-def pathToDay(date, webpage):
+def pathToDay(desiredDate, webpage):
     dropDownForCalendar = webpage.find_element(By.CLASS_NAME, "down")
     dropDownForCalendar.click()
 
     currentMonthAndYear = webpage.find_element(By.XPATH, "//*[@id='odds-component']/header/div/div/div/div/div[8]/div/div/span[2]")
-    monthAndYearText = currentMonthAndYear.text
-    print("Month Year: " + monthAndYearText)
-    monthAbbreviation = monthAndYearText[0:-5]
-    websiteYear = int(monthAndYearText[-4:])
-    print("monthAbbreviation ==>: " + monthAbbreviation)
-    print("year ==>: ", websiteYear)
-    print(date.year)
-    print(date.month)
-    websiteDayOfMonthComp = webpage.find_element(By.XPATH, "//*[@id='odds-component']/header/div/div/div/div/div[4]")
-    websiteDayOfMonth = int((websiteDayOfMonthComp.text)[-2:])
-    print(websiteDayOfMonth)
-    print(int(websiteDayOfMonth))
-    #while (True):
+    # monthAndYearText = currentMonthAndYear.text
+    # print("Month Year: " + monthAndYearText)
+    # monthAbbreviation = monthAndYearText[0:-5]
+    # websiteYear = int(monthAndYearText[-4:])
+    # print("monthAbbreviation ==>: " + monthAbbreviation)
+    # print("year ==>: ", websiteYear)
+    # print(date.year)
+    # print(date.month)
+    # websiteDayOfMonthComp = webpage.find_element(By.XPATH, "//*[@id='odds-component']/header/div/div/div/div/div[4]")
+    # websiteDayOfMonth = int((websiteDayOfMonthComp.text)[-2:])
+    # print(websiteDayOfMonth)
+    # print(int(websiteDayOfMonth))
+    # print("---------------------------")
+    # websiteDateText = (webpage.find_element(By.XPATH, "//*[@id='odds-component']/header/div/div/div/div/div[4]")).
+    websiteDate = (dateStringToDateObject(findDate(webpage)))
+    print(findDate(webpage))
+    print(dateStringToDateObject(findDate(webpage)))
+    print((dateStringToDateObject(findDate(webpage))).__class__)
+
+
+
+    while (True):
         #datetime.date(websiteYear, list(calendar.monthAbbreviation).index(monthAbbreviation), websiteDayOfMonth) != date
+        time.sleep(0.5)
+        try:
+            dropDownForCalendar = webpage.find_element(By.CLASS_NAME, "down")
+            dropDownForCalendar.click()
+        except ElementNotInteractableException:
+            #do nothing
+            pass
+
+        websiteDate = (dateStringToDateObject(findDate(webpage)))
+        previousMonthButton = webpage.find_element(By.CLASS_NAME, "prev")
+        nextMonthButton = webpage.find_element(By.CLASS_NAME, "next")
+        nextDayButton = webpage.find_element(By.XPATH, "//*[@id='odds-component']/header/div/div/div/div/div[5]")
+        previousDayButton = webpage.find_element(By.XPATH, "//*[@id='odds-component']/header/div/div/div/div/div[3]")
+
+        if (websiteDate.year != desiredDate.year):
+            if (websiteDate.year > desiredDate.year):
+                previousMonthButton.click()
+                (webpage.find_element(By.XPATH, "//*[@id='odds-component']/header/div/div/div/div/div[8]/div/table/tbody/tr[1]/td[2]/span")).click()
+            if (websiteDate.year < desiredDate.year):
+                nextMonthButton.click()
+                (webpage.find_element(By.XPATH, "//*[@id='odds-component']/header/div/div/div/div/div[8]/div/table/tbody/tr[1]/td[2]/span")).click()
+
+        elif (websiteDate.month != desiredDate.month):
+            if (websiteDate.month > desiredDate.month):
+                previousMonthButton.click()
+                (webpage.find_element(By.XPATH, "//*[@id='odds-component']/header/div/div/div/div/div[8]/div/table/tbody/tr[1]/td[2]/span")).click()
+            if (websiteDate.month < desiredDate.month):
+                nextMonthButton.click()
+                (webpage.find_element(By.XPATH, "//*[@id='odds-component']/header/div/div/div/div/div[8]/div/table/tbody/tr[1]/td[2]/span")).click()
+
+        elif (websiteDate.day != desiredDate.day):
+            if (websiteDate.day > desiredDate.day):
+                previousDayButton.click()
+            if (websiteDate.day < desiredDate.day):
+                nextDayButton.click()
+            
 
         
 
@@ -182,7 +234,9 @@ sPage.get(URL)
 
 time.sleep(2)
 
-pathToDay(datetime.date(2022, 12, 25), sPage)
+pathToDay(datetime.date(2023, 8, 25), sPage)
+
+
 
 sPage.close()
 
