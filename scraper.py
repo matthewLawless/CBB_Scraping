@@ -160,12 +160,17 @@ def pathToDay(desiredDate, webpage):
     while (True):
         #datetime.date(websiteYear, list(calendar.monthAbbreviation).index(monthAbbreviation), websiteDayOfMonth) != date
         time.sleep(0.5)
-        try:
-            dropDownForCalendar = webpage.find_element(By.CLASS_NAME, "down")
-            dropDownForCalendar.click()
-        except ElementNotInteractableException:
-            #do nothing
-            pass
+
+        websiteDate = (dateStringToDateObject(findDate(webpage)))
+
+        if (websiteDate.month != desiredDate.month):
+            try:
+                dropDownForCalendar = webpage.find_element(By.CLASS_NAME, "down")
+                dropDownForCalendar.click()
+            except ElementNotInteractableException:
+                pass
+            except ElementClickInterceptedException:
+                pass
 
         websiteDate = (dateStringToDateObject(findDate(webpage)))
         previousMonthButton = webpage.find_element(By.CLASS_NAME, "prev")
@@ -176,23 +181,44 @@ def pathToDay(desiredDate, webpage):
         if (websiteDate.year != desiredDate.year):
             if (websiteDate.year > desiredDate.year):
                 previousMonthButton.click()
-                (webpage.find_element(By.XPATH, "//*[@id='odds-component']/header/div/div/div/div/div[8]/div/table/tbody/tr[1]/td[2]/span")).click()
-            if (websiteDate.year < desiredDate.year):
+                #(webpage.find_element(By.XPATH, "//*[@id='odds-component']/header/div/div/div/div/div[8]/div/table/tbody/tr[1]/td[2]/span")).click()
+                calendarDays = (webpage.find_elements(By.CLASS_NAME, "calendar-day"))
+                for c in calendarDays:
+                    if (c.text == '1'):
+                        c.click()
+                        break
+            elif (websiteDate.year < desiredDate.year):
                 nextMonthButton.click()
-                (webpage.find_element(By.XPATH, "//*[@id='odds-component']/header/div/div/div/div/div[8]/div/table/tbody/tr[1]/td[2]/span")).click()
+                #(webpage.find_element(By.XPATH, "//*[@id='odds-component']/header/div/div/div/div/div[8]/div/table/tbody/tr[1]/td[2]/span")).click()
+                calendarDays = (webpage.find_elements(By.CLASS_NAME, "calendar-day"))
+                for c in calendarDays:
+                    if (c.text == '1'):
+                        c.click()
+                        break
 
         elif (websiteDate.month != desiredDate.month):
             if (websiteDate.month > desiredDate.month):
                 previousMonthButton.click()
-                (webpage.find_element(By.XPATH, "//*[@id='odds-component']/header/div/div/div/div/div[8]/div/table/tbody/tr[1]/td[2]/span")).click()
-            if (websiteDate.month < desiredDate.month):
+                calendarDays = (webpage.find_elements(By.CLASS_NAME, "calendar-day"))
+                for c in calendarDays:
+                    if (c.text == '1'):
+                        c.click()
+                        break
+            elif (websiteDate.month < desiredDate.month):
                 nextMonthButton.click()
-                (webpage.find_element(By.XPATH, "//*[@id='odds-component']/header/div/div/div/div/div[8]/div/table/tbody/tr[1]/td[2]/span")).click()
+                calendarDays = (webpage.find_elements(By.CLASS_NAME, "calendar-day"))
+                for c in calendarDays:
+                    if (c.text == '1'):
+                        c.click()
+                        break
 
         elif (websiteDate.day != desiredDate.day):
             if (websiteDate.day > desiredDate.day):
+                #(webpage.find_element(By.XPATH, "//*[@id='odds-component']/header/div/div/div/div/div[4]")).click()
                 previousDayButton.click()
+
             if (websiteDate.day < desiredDate.day):
+                #(webpage.find_element(By.XPATH, "//*[@id='odds-component']/header/div/div/div/div/div[4]")).click()
                 nextDayButton.click()
             
 
