@@ -101,6 +101,20 @@ def parseMoneylineFromPage(webpage, bookmakerNumber):
     
     return result
 
+def retryClick(webpageElement, retries):
+    counter = 0
+    while (counter < retries):
+        try:
+            webpageElement.click()
+            return
+        except StaleElementReferenceException:
+            counter+=1
+            time.sleep(0.1)
+    
+    raise StaleElementReferenceException
+        
+
+
 def insertMoneylineObjectsIntoDatabase(moneylineList, databaseCursor):
     numberOfRows = len(moneylineList)
     insertStatement = "INSERT INTO moneyline(home, away, date, home_Odds, away_Odds, bookmaker)\nVALUES \n"
@@ -166,7 +180,8 @@ def pathToDay(desiredDate, webpage):
         if (websiteDate.month != desiredDate.month):
             try:
                 dropDownForCalendar = webpage.find_element(By.CLASS_NAME, "down")
-                dropDownForCalendar.click()
+                #dropDownForCalendar.click()
+                retryClick(dropDownForCalendar, 50)
             except ElementNotInteractableException:
                 pass
             except ElementClickInterceptedException:
@@ -215,13 +230,20 @@ def pathToDay(desiredDate, webpage):
         elif (websiteDate.day != desiredDate.day):
             if (websiteDate.day > desiredDate.day):
                 #(webpage.find_element(By.XPATH, "//*[@id='odds-component']/header/div/div/div/div/div[4]")).click()
-                previousDayButton.click()
+                #previousDayButton.click()
+                retryClick(previousDayButton, 50)
 
             if (websiteDate.day < desiredDate.day):
                 #(webpage.find_element(By.XPATH, "//*[@id='odds-component']/header/div/div/div/div/div[4]")).click()
-                nextDayButton.click()
+                #nextDayButton.click()
+                retryClick(nextDayButton, 50)
+        
+        else:
+            break
             
-
+def dayHasGames(webpage):
+    dividedElements = webpage.find_elements(By.CLASS_NAME, "divided")
+    return (len(dividedElements) != 0)
         
 
         
@@ -258,9 +280,23 @@ sPage = webdriver.Chrome()
 sPage.maximize_window()
 sPage.get(URL)
 
+
+
+print("-----------------------")
+print(dayHasGames(sPage))
+print("-----------------------")
 time.sleep(2)
 
 pathToDay(datetime.date(2023, 8, 25), sPage)
+print("-----------------------")
+print(dayHasGames(sPage))
+print("-----------------------")
+time.sleep(2)
+pathToDay(datetime.date(2023, 11, 9), sPage)
+print("-----------------------")
+print(dayHasGames(sPage))
+print("-----------------------")
+
 
 
 
