@@ -2,6 +2,7 @@ import mysql.connector
 import datetime
 from datetime import datetime
 from sql_creds import Credentials
+import datetime
 
 
 cbb_betting_lines = mysql.connector.connect(
@@ -20,13 +21,13 @@ ans = cursor.fetchall()
 for i in ans:
     print(i)
 
-date = datetime.date(2024, 6, 9)
-date = datetime.now()
+dateT = datetime.date(2024, 6, 9)
+#date = datetime.now()
 #date = strftime(date)
-print(date)
+print(str(dateT))
 
 # cursor.execute("""DELETE FROM moneyline WHERE date = '2023-11-07' """)
 cursor.execute("SELECT COUNT(*) FROM moneyline")
 ans = cursor.fetchall()
-print(ans)
+#print(ans)
 cbb_betting_lines.commit()

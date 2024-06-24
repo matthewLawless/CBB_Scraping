@@ -42,9 +42,9 @@ def findDate(webpage):
     return (data_content[dateIndex+5:dateIndex + 15])
 
 def dateStringToDateObject(dateString):
-    print(int(dateString[0:4]))
-    print(int(dateString[5:7]))
-    print(int(dateString[8:10]))
+    # print(int(dateString[0:4]))
+    # print(int(dateString[5:7]))
+    # print(int(dateString[8:10]))
     return datetime.date(int(dateString[0:4]), int(dateString[5:7]), int(dateString[8:10]))
 
 
@@ -58,10 +58,37 @@ bookmakerMap = {
     "UNIBET": 7
 }
 
+def createSpreadFromTwoRows(homeRow, awayRow, webpage, date, bookmakerNumber):
+    homeTeamName = (homeRow.find_element(By.CLASS_NAME, "team-name")).text
+    awayTeamName = (awayRow.find_element(By.CLASS_NAME, "team-name")).text
+    print(homeTeamName)
+    print(awayTeamName)
+
+    s = header.Spread(homeTeamName, awayTeamName, date, Bookmakers(bookmakerNumber).name)
+    s.home_Spread = ((homeRow.find_elements(By.CLASS_NAME, "data-value"))[bookmakerNumber]).text
+    if (s.home_Spread == "N/A"):
+        s.home_Odds = "N/A"
+    else: 
+        s.home_Odds = ((homeRow.find_elements(By.CLASS_NAME, "data-odds"))[bookmakerNumber]).text
+
+    s.away_Spread = ((awayRow.find_elements(By.CLASS_NAME, "data-value"))[bookmakerNumber]).text
+    if (s.away_Spread == "N/A"):
+        s.away_Odds = "N/A"
+    else: 
+        s.away_Odds = ((awayRow.find_elements(By.CLASS_NAME, "data-odds"))[bookmakerNumber]).text
+
+    if (homeTeamName == '' and awayTeamName == ''):
+        return None
+    
+    return s
+
+
 def createMoneylineFromTwoRows(homeRow, awayRow, webpage, date, bookmakerNumber):
     #need to find out what day it is
     homeTeamName = (homeRow.find_element(By.CLASS_NAME, "team-name")).text
     awayTeamName = (awayRow.find_element(By.CLASS_NAME, "team-name")).text
+
+
 
     m = header.Moneyline(homeTeamName, awayTeamName, date, Bookmakers(bookmakerNumber).name)
     m.home_Odds = ((homeRow.find_elements(By.CLASS_NAME, "game-odds"))[bookmakerNumber]).text
@@ -75,6 +102,30 @@ def createMoneylineFromTwoRows(homeRow, awayRow, webpage, date, bookmakerNumber)
         return None
     return m
 
+
+def parseSpreadFromPage(webpage, bookmakerNumber):
+    currentRowIndex=0
+    result = []
+    spreadOnlyGames = webpage.find_element(By.XPATH, "//*[@id='odds-table-spread--0']")
+    topRows = spreadOnlyGames.find_elements(By.CLASS_NAME, "divided")
+    bottomRows = spreadOnlyGames.find_elements(By.CLASS_NAME, "footer")
+    print("topRows amount: " + str(len(topRows)))
+    print("bottomRows amount: " + str(len(bottomRows)))
+    print("#######################################################################")
+
+    websiteDate = (dateStringToDateObject(findDate(webpage)))
+    
+    while (currentRowIndex < len(topRows)):
+        topRowOfPair = topRows[currentRowIndex]
+        bottomRowOfPair = bottomRows[currentRowIndex]
+        s = createSpreadFromTwoRows(topRowOfPair, bottomRowOfPair, sPage, websiteDate, bookmakerNumber)
+        if (s != None):
+            result.append(s)
+        currentRowIndex+=1
+
+    return result
+
+
 #Parses moneyline data from single date. webpage is the page corresponding to the date with moneyline already selected
 #this method returns a list of all of the moneyline objects, which will then (in some to-be-created logic)
 #be passed to a method that inserts these moneyline objects into the database
@@ -83,6 +134,8 @@ def parseMoneylineFromPage(webpage, bookmakerNumber):
     result = []
     topRows = webpage.find_elements(By.CLASS_NAME, "divided")
     bottomRows = webpage.find_elements(By.CLASS_NAME, "footer")
+
+    websiteDate = (dateStringToDateObject(findDate(webpage)))
 
     if (len(topRows) != len(bottomRows)):
         raise Exception("Differing number of top and bottom rows")
@@ -94,7 +147,7 @@ def parseMoneylineFromPage(webpage, bookmakerNumber):
         bottomRowOfPair = bottomRows[currentRowIndex]
         # print((topRowOfPair.find_element(By.CLASS_NAME, "team-name")).text)
         # print((bottomRowOfPair.find_element(By.CLASS_NAME, "team-name")).text)
-        m = createMoneylineFromTwoRows(topRowOfPair, bottomRowOfPair, sPage, date, bookmakerNumber)
+        m = createMoneylineFromTwoRows(topRowOfPair, bottomRowOfPair, sPage, websiteDate, bookmakerNumber)
         if (m != None):
             result.append(m)
         currentRowIndex+=1
@@ -169,18 +222,27 @@ def pathToDay(desiredDate, webpage):
     print(dateStringToDateObject(findDate(webpage)))
     print((dateStringToDateObject(findDate(webpage))).__class__)
 
+    lastIterationDate = datetime.date(2000, 3, 3)
+
 
 
     while (True):
         #datetime.date(websiteYear, list(calendar.monthAbbreviation).index(monthAbbreviation), websiteDayOfMonth) != date
-        time.sleep(0.5)
-
+        time.sleep(1)
         websiteDate = (dateStringToDateObject(findDate(webpage)))
-
+        count = 0
+        while (count < 10):
+            if (websiteDate == lastIterationDate):
+                time.sleep(2)
+                count+=1
+            else:
+                break
+        count = 0
+        
         if (websiteDate.month != desiredDate.month):
             try:
                 dropDownForCalendar = webpage.find_element(By.CLASS_NAME, "down")
-                #dropDownForCalendar.click()
+                dropDownForCalendar.click()
                 retryClick(dropDownForCalendar, 50)
             except ElementNotInteractableException:
                 pass
@@ -188,6 +250,7 @@ def pathToDay(desiredDate, webpage):
                 pass
 
         websiteDate = (dateStringToDateObject(findDate(webpage)))
+        print("website Date ==> " + str(websiteDate))
         previousMonthButton = webpage.find_element(By.CLASS_NAME, "prev")
         nextMonthButton = webpage.find_element(By.CLASS_NAME, "next")
         nextDayButton = webpage.find_element(By.XPATH, "//*[@id='odds-component']/header/div/div/div/div/div[5]")
@@ -228,6 +291,7 @@ def pathToDay(desiredDate, webpage):
                         break
 
         elif (websiteDate.day != desiredDate.day):
+            
             if (websiteDate.day > desiredDate.day):
                 #(webpage.find_element(By.XPATH, "//*[@id='odds-component']/header/div/div/div/div/div[4]")).click()
                 #previousDayButton.click()
@@ -240,6 +304,8 @@ def pathToDay(desiredDate, webpage):
         
         else:
             break
+
+        lastIterationDate = websiteDate
             
 def dayHasGames(webpage):
     dividedElements = webpage.find_elements(By.CLASS_NAME, "divided")
@@ -282,25 +348,53 @@ sPage.get(URL)
 
 
 
-print("-----------------------")
-print(dayHasGames(sPage))
-print("-----------------------")
-time.sleep(2)
+# print("-----------------------")
+# print(dayHasGames(sPage))
+# print("-----------------------")
+# time.sleep(2)
+# pathToDay(datetime.date(2023, 8, 25), sPage)
+# print("-----------------------")
+# print(dayHasGames(sPage))
+# print("-----------------------")
+# time.sleep(2)
+# pathToDay(datetime.date(2023, 11, 9), sPage)
+# print("-----------------------")
+# print(dayHasGames(sPage))
+# print("-----------------------")
 
-pathToDay(datetime.date(2023, 8, 25), sPage)
-print("-----------------------")
-print(dayHasGames(sPage))
-print("-----------------------")
-time.sleep(2)
-pathToDay(datetime.date(2023, 11, 9), sPage)
-print("-----------------------")
-print(dayHasGames(sPage))
-print("-----------------------")
+pathToDay(datetime.date(2023, 11, 8), sPage)
+attempts = 0
+while (attempts < 50):
+    try:
+        (sPage.find_element(By.XPATH, "//*[@id='odds-component']/div/ul/li[3]/span")).click()
+        break
+    except StaleElementReferenceException:
+        attempts+=1
+
+moneylines = parseMoneylineFromPage(sPage, Bookmakers["BETMGM"].value)
+for m in moneylines:
+    print(m.toString())
 
 
+while (attempts < 50):
+    try:
+        (sPage.find_element(By.XPATH, "//*[@id='odds-component']/div/ul/li[1]/span")).click()
+        break
+    except StaleElementReferenceException:
+        attempts+=1  
+
+
+spreads = parseSpreadFromPage(sPage, Bookmakers["BETMGM"].value)
+for s in spreads:
+    print(s.toString())
 
 
 sPage.close()
+
+
+
+
+
 
 dropDownForCalendar = sPage.find_element(By.CLASS_NAME, "down")
 dropDownForCalendar.click()
