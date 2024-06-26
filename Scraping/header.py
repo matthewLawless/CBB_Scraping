@@ -2,13 +2,13 @@ import dataclasses
 from enum import Enum
 
 class Bookmakers(Enum):
-    BET365 = 0
-    FANDUEL = 1
-    BETMGM = 2
-    CAESARSSPORTSBOOK = 3
-    DRAFTKINGS = 4
-    RIVERSCASINO = 5
-    UNIBET = 6
+    BET365 = 1
+    FANDUEL = 2
+    BETMGM = 3
+    CAESARSSPORTSBOOK = 4
+    DRAFTKINGS = 5
+    RIVERSCASINO = 6
+    UNIBET = 7
 
 
 class Moneyline:
