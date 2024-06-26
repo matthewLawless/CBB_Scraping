@@ -84,23 +84,56 @@ def createSpreadFromTwoRows(homeRow, awayRow, webpage, date, bookmakerNumber):
 
 
 def createMoneylineFromTwoRows(homeRow, awayRow, webpage, date, bookmakerNumber):
-    #need to find out what day it is
+    
     homeTeamName = (homeRow.find_element(By.CLASS_NAME, "team-name")).text
     awayTeamName = (awayRow.find_element(By.CLASS_NAME, "team-name")).text
 
-
-
     m = header.Moneyline(homeTeamName, awayTeamName, date, Bookmakers(bookmakerNumber).name)
-    m.home_Odds = ((homeRow.find_elements(By.CLASS_NAME, "game-odds"))[bookmakerNumber]).text
-    # if (m.home_Odds == 'N/A'):
-    #     m.home_Odds = None
-    m.away_Odds = ((awayRow.find_elements(By.CLASS_NAME, "game-odds"))[bookmakerNumber]).text
-    # if (m.away_Odds == 'N/A'):
-    #     m.away_Odds = None
+
+    gameOdds = (homeRow.find_elements(By.CLASS_NAME, "data-value"))
+    m.home_Odds = (gameOdds[bookmakerNumber]).text
+    m.away_Odds = ((awayRow.find_elements(By.CLASS_NAME, "data-value"))[bookmakerNumber]).text
     
     if (homeTeamName == '' and awayTeamName == ''):
         return None
+    
     return m
+
+def createTotalFromTwoRows(homeRow, awayRow, webpage, date, bookmakerNumber):
+    homeTeamName = (homeRow.find_element(By.CLASS_NAME, "team-name")).text
+    awayTeamName = (awayRow.find_element(By.CLASS_NAME, "team-name")).text
+
+    t = header.Total(homeTeamName, awayTeamName, date, Bookmakers(bookmakerNumber).name)
+    dataValues = (homeRow.find_elements(By.CLASS_NAME, "data-value"))
+    t.total = ((dataValues[bookmakerNumber]).text)[1:]
+    if (t.total != '/A'):
+        t.over_Odds = (((homeRow.find_elements(By.CLASS_NAME, "data-odds"))[bookmakerNumber]).text)
+        t.under_Odds = (((awayRow.find_elements(By.CLASS_NAME, "data-odds"))[bookmakerNumber]).text)
+    else:
+        return None
+
+    if (homeTeamName == '' and awayTeamName == ''):
+        return None
+    
+    return t
+
+def parseTotalFromPage(webpage, bookmakerNumber):
+    currentRowIndex=0
+    result = []
+    totalOnlyGames = webpage.find_element(By.XPATH, "//*[@id='odds-table-total--0']")
+    topRows = totalOnlyGames.find_elements(By.CLASS_NAME, "divided")
+    bottomRows = totalOnlyGames.find_elements(By.CLASS_NAME, "footer")
+    websiteDate = (dateStringToDateObject(findDate(webpage)))
+    while (currentRowIndex < len(topRows)):
+        topRowOfPair = topRows[currentRowIndex]
+        bottomRowOfPair = bottomRows[currentRowIndex]
+        s = createTotalFromTwoRows(topRowOfPair, bottomRowOfPair, sPage, websiteDate, bookmakerNumber)
+        if (s != None):
+            result.append(s)
+        currentRowIndex+=1
+
+    return result
+
 
 
 def parseSpreadFromPage(webpage, bookmakerNumber):
@@ -132,8 +165,9 @@ def parseSpreadFromPage(webpage, bookmakerNumber):
 def parseMoneylineFromPage(webpage, bookmakerNumber):
     currentRowIndex=0
     result = []
-    topRows = webpage.find_elements(By.CLASS_NAME, "divided")
-    bottomRows = webpage.find_elements(By.CLASS_NAME, "footer")
+    moneylineOnlyGames = webpage.find_element(By.XPATH, "//*[@id='odds-table-moneyline--0']")
+    topRows = moneylineOnlyGames.find_elements(By.CLASS_NAME, "divided")
+    bottomRows = moneylineOnlyGames.find_elements(By.CLASS_NAME, "footer")
 
     websiteDate = (dateStringToDateObject(findDate(webpage)))
 
@@ -366,16 +400,30 @@ pathToDay(datetime.date(2023, 11, 8), sPage)
 attempts = 0
 while (attempts < 50):
     try:
+        (sPage.find_element(By.XPATH, "//*[@id='odds-component']/div/ul/li[2]/span")).click()
+        break
+    except StaleElementReferenceException:
+        attempts+=1
+
+totals = parseTotalFromPage(sPage, Bookmakers["BETMGM"].value)
+
+
+
+# sPage.close()
+
+
+attempts = 0
+while (attempts < 50):
+    try:
         (sPage.find_element(By.XPATH, "//*[@id='odds-component']/div/ul/li[3]/span")).click()
         break
     except StaleElementReferenceException:
         attempts+=1
 
 moneylines = parseMoneylineFromPage(sPage, Bookmakers["BETMGM"].value)
-for m in moneylines:
-    print(m.toString())
 
 
+attempts = 0
 while (attempts < 50):
     try:
         (sPage.find_element(By.XPATH, "//*[@id='odds-component']/div/ul/li[1]/span")).click()
@@ -385,8 +433,17 @@ while (attempts < 50):
 
 
 spreads = parseSpreadFromPage(sPage, Bookmakers["BETMGM"].value)
+
+
+
 for s in spreads:
     print(s.toString())
+
+for t in totals:
+    print(t.toString())
+
+for m in moneylines:
+    print(m.toString())
 
 
 sPage.close()
