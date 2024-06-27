@@ -239,7 +239,34 @@ def retryClick(webpageElement, retries):
     
     raise StaleElementReferenceException
         
+def insertSpreadObjectsIntoDatabase(spreadList, databaseCursor):
+    numberOfRows = len(spreadList)
+    insertStatement = "INSERT INTO spread(home, away, date, home_Spread, away_Spread, home_Odds, away_Odds, bookmaker)\nVALUES\n"
+    for s in spreadList:
+        row = '("%s", "%s", "%s", %.1f, %.1f, %d, %d, "%s")' % (s.home, s.away, s.date, float(s.home_Spread), float(s.away_Spread), int(s.home_Odds), int(s.away_Odds), s.bookmaker)
+        insertStatement += row
+        insertStatement += ',\n'
 
+    insertStatement = insertStatement[:-2]
+    insertStatement += ";"
+
+    print(insertStatement)
+
+    databaseCursor.execute(insertStatement)
+    
+def insertTotalObjectsIntoDatabase(totalList, databaseCursor):
+    insertStatement = "INSERT INTO total(home, away, date, total, over_Odds, under_Odds, bookmaker)\nVALUES\n"
+    for t in totalList:
+        row = '("%s", "%s", "%s", %.1f, %d, %d, "%s")' % (t.home, t.away, t.date, float(t.total), int(t.over_Odds), int(t.under_Odds), t.bookmaker)
+        insertStatement += row
+        insertStatement += ',\n'
+
+    insertStatement = insertStatement[:-2]
+    insertStatement += ";"
+    
+    print(insertStatement)
+
+    databaseCursor.execute(insertStatement)
 
 def insertMoneylineObjectsIntoDatabase(moneylineList, databaseCursor):
     numberOfRows = len(moneylineList)
@@ -484,7 +511,11 @@ for t in totals:
 for m in moneylines:
     print(m.toString())
 
+cursor = cbb_betting_lines.cursor()
+insertSpreadObjectsIntoDatabase(spreads, cursor)
+insertTotalObjectsIntoDatabase(totals, cursor)
 
+cbb_betting_lines.commit()
 sPage.close()
 
 
